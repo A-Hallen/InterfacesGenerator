@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- Configuración para herramienta global de .NET -->
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>interfaces-generator</ToolCommandName>
+        <PackageId>InterfacesGenerator</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Hallen</Authors>
+        <Description>Generador de interfaces TypeScript para proyectos C#</Description>
+        <PackageTags>typescript;interface;generator;csharp</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Title>Generador de interfaces typescript</Title>
+        <PackageIcon>logo.png</PackageIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+        <PackageReference Include="System.CommandLine" Version="2.0.0-beta7.25380.108" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Update="logo.png">
+            <Pack>True</Pack>
+        </None>
+    </ItemGroup>
+
+</Project>
