@@ -1,13 +1,13 @@
 using System.Text;
-using Microsoft.CodeAnalysis;
+using GeneradorInterfaces;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace GeneradorInterfaces;
+namespace InterfacesGenerator;
 
 public static class TypeScriptGenerator
 {
-    public static async Task GenerateTypeScriptInterfaces(string sourceDir, string outputDir, string packageName, string version, bool publish)
+    public static async Task GenerateTypeScriptInterfaces(string sourceDir, string outputDir, string packageName, string version, bool publish, string repository = "", string author = "", string license = "ISC", bool autoLogin = false, string npmScope = "")
     {
         try
         {
@@ -70,14 +70,14 @@ public static class TypeScriptGenerator
             }
 
             await GenerateIndexFile(outputDir, typeScriptInterfaces.Keys);
-            await GeneratePackageJson(outputDir, packageName, version);
+            await GeneratePackageJson(outputDir, packageName, version, repository, author, license);
             await GenerateTsConfigJson(outputDir);
             await GenerateReadme(outputDir, packageName);
             await GenerateProcesoMd(outputDir);
 
             if (publish)
             {
-                await NpmPublisher.PublishNpmPackage(outputDir);
+                await NpmPublisher.PublishNpmPackage(outputDir, autoLogin, npmScope);
             }
 
             Console.WriteLine("Generación de interfaces TypeScript completada con éxito.");
@@ -190,7 +190,7 @@ public static class TypeScriptGenerator
         Console.WriteLine("Generado archivo index.ts");
     }
 
-    private static async Task GeneratePackageJson(string outputDir, string packageName, string version)
+    private static async Task GeneratePackageJson(string outputDir, string packageName, string version, string repository, string author, string license)
     {
         var packageJson = @$"{{
   ""name"": ""{packageName}"",
@@ -207,8 +207,12 @@ public static class TypeScriptGenerator
     ""interfaces"",
     ""mensajeria""
   ],
-  ""author"": """",
-  ""license"": ""ISC"",
+  ""author"": ""{author}"",
+  ""license"": ""{license}"",
+  ""repository"": {{
+    ""type"": ""git"",
+    ""url"": ""{repository}""
+  }},
   ""devDependencies"": {{
     ""typescript"": ""^5.0.0""
   }}

@@ -1,10 +1,8 @@
-using System.Text;
-
-namespace GeneradorInterfaces;
+namespace InterfacesGenerator;
 
 public static class TypeMapper
 {
-    public static Dictionary<string, string> TypeMappings = new()
+    private static readonly Dictionary<string, string> TypeMappings = new()
     {
         { "string", "string" },
         { "int", "number" },
@@ -26,19 +24,19 @@ public static class TypeMapper
     {
         if (csharpType.EndsWith("[]"))
         {
-            var elementType = csharpType.Substring(0, csharpType.Length - 2);
+            var elementType = csharpType[..^2];
             var tsElementType = MapCSharpTypeToTypeScript(elementType, imports, currentDirectory);
             return $"{tsElementType}[]";
         }
 
         if (csharpType.EndsWith("?"))
         {
-            var nonNullableType = csharpType.Substring(0, csharpType.Length - 1);
+            var nonNullableType = csharpType[..^1];
             var tsNonNullableType = MapCSharpTypeToTypeScript(nonNullableType, imports, currentDirectory);
             return $"{tsNonNullableType} | null";
         }
 
-        if (csharpType.Contains("<") && csharpType.Contains(">"))
+        if (csharpType.Contains('<') && csharpType.Contains('>'))
         {
             var genericStart = csharpType.IndexOf('<');
             var genericEnd = csharpType.LastIndexOf('>');
@@ -48,21 +46,28 @@ public static class TypeMapper
                 var genericType = csharpType.Substring(0, genericStart);
                 var typeArguments = csharpType.Substring(genericStart + 1, genericEnd - genericStart - 1);
 
-                if (genericType == "Dictionary")
+                switch (genericType)
                 {
-                    var args = typeArguments.Split(',');
-                    if (args.Length == 2)
+                    case "Dictionary":
                     {
-                        var keyType = MapCSharpTypeToTypeScript(args[0].Trim(), imports, currentDirectory);
-                        var valueType = MapCSharpTypeToTypeScript(args[1].Trim(), imports, currentDirectory);
-                        return $"Record<{keyType}, {valueType}>";
-                    }
-                }
+                        var args = typeArguments.Split(',');
+                        if (args.Length == 2)
+                        {
+                            var keyType = MapCSharpTypeToTypeScript(args[0].Trim(), imports, currentDirectory);
+                            var valueType = MapCSharpTypeToTypeScript(args[1].Trim(), imports, currentDirectory);
+                            return $"Record<{keyType}, {valueType}>";
+                        }
 
-                if (genericType == "List" || genericType == "IEnumerable" || genericType == "ICollection" || genericType == "IList")
-                {
-                    var elementType = MapCSharpTypeToTypeScript(typeArguments.Trim(), imports, currentDirectory);
-                    return $"{elementType}[]";
+                        break;
+                    }
+                    case "List":
+                    case "IEnumerable":
+                    case "ICollection":
+                    case "IList":
+                    {
+                        var elementType = MapCSharpTypeToTypeScript(typeArguments.Trim(), imports, currentDirectory);
+                        return $"{elementType}[]";
+                    }
                 }
             }
         }
@@ -72,33 +77,7 @@ public static class TypeMapper
             return tsType;
         }
 
-        if (csharpType != "Unit" && !IsBasicType(csharpType))
-        {
-            var typeDirectory = FindTypeDirectory(csharpType);
-            if (!string.IsNullOrEmpty(typeDirectory) && typeDirectory != currentDirectory)
-            {
-                var relativePath = PathUtils.GetRelativePath(currentDirectory, typeDirectory);
-                imports.Add($"import {{ {csharpType} }} from '{relativePath}/{Path.GetFileName(typeDirectory)}';");
-            }
-        }
-
-        if (csharpType == "Unit")
-        {
-            return "void";
-        }
-
-        return csharpType;
-    }
-
-    private static bool IsBasicType(string typeName)
-    {
-        return typeName == "string" || typeName == "number" || typeName == "boolean" || typeName == "any" ||
-               typeName == "void" || typeName == "null" || typeName == "undefined" || typeName == "object";
-    }
-
-    private static string FindTypeDirectory(string typeName)
-    {
-        return string.Empty;
+        return csharpType == "Unit" ? "void" : csharpType;
     }
 
     public static string CamelCase(string input)
@@ -108,6 +87,6 @@ public static class TypeMapper
             return input;
         }
 
-        return char.ToLowerInvariant(input[0]) + input.Substring(1);
+        return char.ToLowerInvariant(input[0]) + input[1..];
     }
 }

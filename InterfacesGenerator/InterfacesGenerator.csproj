@@ -10,13 +10,14 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>interfaces-generator</ToolCommandName>
         <PackageId>InterfacesGenerator</PackageId>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <Authors>Hallen</Authors>
         <Description>Generador de interfaces TypeScript para proyectos C#</Description>
         <PackageTags>typescript;interface;generator;csharp</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Title>Generador de interfaces typescript</Title>
         <PackageIcon>logo.png</PackageIcon>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
@@ -27,7 +28,8 @@
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\" />
         <None Update="logo.png">
-            <Pack>True</Pack>
+          <Pack>True</Pack>
+          <PackagePath></PackagePath>
         </None>
     </ItemGroup>
 
