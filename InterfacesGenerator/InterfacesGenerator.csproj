@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -10,7 +10,7 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>interfaces-generator</ToolCommandName>
         <PackageId>InterfacesGenerator</PackageId>
-        <Version>1.0.3</Version>
+        <Version>1.0.4</Version>
         <Authors>Hallen</Authors>
         <Description>Generador de interfaces TypeScript para proyectos C#</Description>
         <PackageTags>typescript;interface;generator;csharp</PackageTags>
@@ -18,6 +18,7 @@
         <Title>Generador de interfaces typescript</Title>
         <PackageIcon>logo.png</PackageIcon>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <RepositoryUrl>https://github.com/A-Hallen/InterfacesGenerator/tree/master</RepositoryUrl>
     </PropertyGroup>
 
     <ItemGroup>
@@ -26,14 +27,17 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="logo.png">
-          <Pack>True</Pack>
-          <PackagePath></PackagePath>
-        </None>
-        <None Update="README.md">
-          <Pack>true</Pack>
-          <PackagePath>\</PackagePath>
-        </None>
+      <None Update="logo.png">
+        <Pack>True</Pack>
+        <PackagePath></PackagePath>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\README.md">
+        <Pack>True</Pack>
+        <PackagePath></PackagePath>
+      </None>
     </ItemGroup>
 
 </Project>

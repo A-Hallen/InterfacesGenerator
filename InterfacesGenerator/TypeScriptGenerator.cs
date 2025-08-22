@@ -1,5 +1,5 @@
 using System.Text;
-using GeneradorInterfaces;
+using InterfacesGenerator;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 

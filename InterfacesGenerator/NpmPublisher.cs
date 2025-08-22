@@ -11,6 +11,9 @@ public static class NpmPublisher
 
         try
         {
+            // Asegurarse de que la ruta sea absoluta
+            outputDir = Path.GetFullPath(outputDir);
+            
             // Verificar que el directorio de salida existe y es accesible
             if (!Directory.Exists(outputDir))
             {
@@ -54,7 +57,8 @@ public static class NpmPublisher
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    WorkingDirectory = outputDir // Asegurarse de usar el directorio correcto
                 }
             };
 
@@ -93,7 +97,8 @@ public static class NpmPublisher
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
-                        CreateNoWindow = true
+                        CreateNoWindow = true,
+                        WorkingDirectory = outputDir // Asegurarse de usar el directorio correcto
                     }
                 };
 
@@ -137,7 +142,7 @@ public static class NpmPublisher
                 {
                     FileName = npmPath,
                     Arguments = "install",
-                    WorkingDirectory = outputDir,
+                    WorkingDirectory = outputDir, // Asegurarse de usar el directorio correcto
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -171,7 +176,7 @@ public static class NpmPublisher
                 {
                     FileName = npmPath,
                     Arguments = "run build",
-                    WorkingDirectory = outputDir,
+                    WorkingDirectory = outputDir, // Asegurarse de usar el directorio correcto
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -213,7 +218,7 @@ public static class NpmPublisher
                 {
                     FileName = npmPath,
                     Arguments = publishArgs,
-                    WorkingDirectory = outputDir,
+                    WorkingDirectory = outputDir, // Asegurarse de usar el directorio correcto
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -252,64 +257,27 @@ public static class NpmPublisher
 
     private static string FindNpmExecutable()
     {
-        // Intentar encontrar npm en el PATH
-        var npmPath = "npm";
-        
-        // En Windows, también buscar en ubicaciones comunes
-        if (Environment.OSVersion.Platform != PlatformID.Win32NT) return npmPath;
-        // Comprobar si npm está en el PATH
-        try
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "where",
-                    Arguments = "npm",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-                
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-                
-            if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
-            {
-                // Tomar la primera línea del resultado (primera ubicación encontrada)
-                var paths = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
-                if (paths.Length > 0)
-                {
-                    return paths[0].Trim();
-                }
-            }
-        }
-        catch
-        {
-            // Ignorar errores y continuar con otras ubicaciones
-        }
-            
+        // En Windows, siempre usar npm.cmd en lugar de npm
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT) return "npm";
         // Buscar en ubicaciones comunes de instalación de Node.js
         string[] commonPaths =
         [
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs", "npm.cmd"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "nodejs", "npm.cmd"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Roaming", "npm", "npm.cmd")
+            Path.Combine(Environment.GetEnvironmentVariable("APPDATA") ?? "", "npm", "npm.cmd"),
+            Path.Combine(Environment.GetEnvironmentVariable("APPDATA") ?? "", "Roaming", "npm", "npm.cmd")
         ];
             
         foreach (var path in commonPaths)
         {
-            if (File.Exists(path))
-            {
-                return path;
-            }
+            if (!File.Exists(path)) continue;
+            Console.WriteLine($"Encontrado npm.cmd en: {path}");
+            return path;
         }
             
-        // En Windows, usar npm.cmd en lugar de npm
-        npmPath = "npm.cmd";
+        // Si no se encuentra en ubicaciones comunes, intentar con npm.cmd en el PATH
+        return "npm.cmd";
 
-        return npmPath;
+        // En otros sistemas operativos, usar npm
     }
 }
