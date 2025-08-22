@@ -1,38 +1,86 @@
 using System.Diagnostics;
 
-namespace GeneradorInterfaces;
+namespace InterfacesGenerator;
 
 public static class NpmPublisher
 {
     public static async Task PublishNpmPackage(string outputDir, bool autoLogin = false, string scope = "")
     {
-        Console.WriteLine("Publicando paquete npm...");
+        Console.WriteLine($"Publicando paquete npm desde el directorio: {outputDir}");
+        Console.WriteLine($"Directorio actual: {Directory.GetCurrentDirectory()}");
 
         try
         {
+            // Verificar que el directorio de salida existe y es accesible
+            if (!Directory.Exists(outputDir))
+            {
+                Console.WriteLine($"Error: El directorio de salida '{outputDir}' no existe.");
+                return;
+            }
+
+            // Verificar que el directorio de salida es accesible
+            try
+            {
+                var testFile = Path.Combine(outputDir, "test.txt");
+                await File.WriteAllTextAsync(testFile, "Test");
+                File.Delete(testFile);
+                Console.WriteLine($"Directorio de salida '{outputDir}' es accesible.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: No se puede acceder al directorio de salida '{outputDir}': {ex.Message}");
+                return;
+            }
+
+            // Buscar npm en diferentes ubicaciones
+            var npmPath = FindNpmExecutable();
+            if (string.IsNullOrEmpty(npmPath))
+            {
+                Console.WriteLine("Error: npm no está instalado o no está en el PATH del sistema.");
+                Console.WriteLine("Por favor, instale Node.js desde https://nodejs.org/");
+                Console.WriteLine("Después de la instalación, reinicie su terminal o IDE para que los cambios en el PATH surtan efecto.");
+                return;
+            }
+
+            Console.WriteLine($"Usando npm desde: {npmPath}");
+
             // Verificar que npm está instalado
             var npmVersionProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "npm",
+                    FileName = npmPath,
                     Arguments = "--version",
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
             };
 
-            npmVersionProcess.Start();
-            await npmVersionProcess.WaitForExitAsync();
-
-            if (npmVersionProcess.ExitCode != 0)
+            try
             {
-                Console.WriteLine("Error: npm no está instalado o no está disponible en el PATH.");
+                npmVersionProcess.Start();
+                await npmVersionProcess.WaitForExitAsync();
+                var npmVersion = await npmVersionProcess.StandardOutput.ReadToEndAsync();
+                Console.WriteLine($"Versión de npm: {npmVersion.Trim()}");
+            }
+            catch (System.ComponentModel.Win32Exception ex)
+            {
+                Console.WriteLine($"Error al ejecutar npm: {ex.Message}");
+                Console.WriteLine("Por favor, verifique que npm está correctamente instalado y configurado.");
                 return;
             }
 
-            // Verificar si el usuario está autenticado en npm
+            if (npmVersionProcess.ExitCode != 0)
+            {
+                var error = await npmVersionProcess.StandardError.ReadToEndAsync();
+                Console.WriteLine($"Error al ejecutar npm: {error}");
+                Console.WriteLine("Por favor, verifique que npm está correctamente instalado y configurado.");
+                return;
+            }
+
+            // Verificar autenticación en npm si es necesario
             if (autoLogin)
             {
                 Console.WriteLine("Verificando autenticación en npm...");
@@ -40,7 +88,7 @@ public static class NpmPublisher
                 {
                     StartInfo = new ProcessStartInfo
                     {
-                        FileName = "npm",
+                        FileName = npmPath,
                         Arguments = "whoami",
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
@@ -49,8 +97,16 @@ public static class NpmPublisher
                     }
                 };
 
-                npmWhoamiProcess.Start();
-                await npmWhoamiProcess.WaitForExitAsync();
+                try
+                {
+                    npmWhoamiProcess.Start();
+                    await npmWhoamiProcess.WaitForExitAsync();
+                }
+                catch (System.ComponentModel.Win32Exception ex)
+                {
+                    Console.WriteLine($"Error al verificar la autenticación en npm: {ex.Message}");
+                    return;
+                }
 
                 if (npmWhoamiProcess.ExitCode != 0)
                 {
@@ -65,72 +121,97 @@ public static class NpmPublisher
                 }
             }
 
+            // Verificar que package.json existe en el directorio de salida
+            var packageJsonPath = Path.Combine(outputDir, "package.json");
+            if (!File.Exists(packageJsonPath))
+            {
+                Console.WriteLine($"Error: No se encontró el archivo package.json en '{outputDir}'.");
+                return;
+            }
+
             // Instalar dependencias
+            Console.WriteLine("Instalando dependencias npm...");
             var npmInstallProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "npm",
+                    FileName = npmPath,
                     Arguments = "install",
                     WorkingDirectory = outputDir,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
             };
 
-            npmInstallProcess.Start();
-            await npmInstallProcess.WaitForExitAsync();
+            try
+            {
+                npmInstallProcess.Start();
+                await npmInstallProcess.WaitForExitAsync();
+            }
+            catch (System.ComponentModel.Win32Exception ex)
+            {
+                Console.WriteLine($"Error al instalar dependencias npm: {ex.Message}");
+                return;
+            }
 
             if (npmInstallProcess.ExitCode != 0)
             {
-                Console.WriteLine("Error al instalar dependencias npm.");
+                var error = await npmInstallProcess.StandardError.ReadToEndAsync();
+                Console.WriteLine($"Error al instalar dependencias npm: {error}");
                 return;
             }
 
             // Compilar el proyecto TypeScript
+            Console.WriteLine("Compilando proyecto TypeScript...");
             var npmBuildProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "npm",
+                    FileName = npmPath,
                     Arguments = "run build",
                     WorkingDirectory = outputDir,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 }
             };
 
-            npmBuildProcess.Start();
-            await npmBuildProcess.WaitForExitAsync();
+            try
+            {
+                npmBuildProcess.Start();
+                await npmBuildProcess.WaitForExitAsync();
+            }
+            catch (System.ComponentModel.Win32Exception ex)
+            {
+                Console.WriteLine($"Error al compilar el proyecto TypeScript: {ex.Message}");
+                return;
+            }
 
             if (npmBuildProcess.ExitCode != 0)
             {
-                Console.WriteLine("Error al compilar el proyecto TypeScript.");
+                var error = await npmBuildProcess.StandardError.ReadToEndAsync();
+                Console.WriteLine($"Error al compilar el proyecto TypeScript: {error}");
                 return;
             }
 
             // Publicar el paquete npm
-            string publishArgs = "publish";
+            Console.WriteLine("Publicando paquete npm...");
+            var publishArgs = "publish";
             
-            // Añadir scope si se especifica
-            if (!string.IsNullOrEmpty(scope))
-            {
-                publishArgs += $" --scope={scope}";
-            }
-            
-            // Añadir opción para acceso público si es un paquete con scope
+            // Agregar --access=public si se especifica un scope
             if (!string.IsNullOrEmpty(scope))
             {
                 publishArgs += " --access=public";
             }
-
+            
             var npmPublishProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "npm",
+                    FileName = npmPath,
                     Arguments = publishArgs,
                     WorkingDirectory = outputDir,
                     RedirectStandardOutput = true,
@@ -140,8 +221,16 @@ public static class NpmPublisher
                 }
             };
 
-            npmPublishProcess.Start();
-            await npmPublishProcess.WaitForExitAsync();
+            try
+            {
+                npmPublishProcess.Start();
+                await npmPublishProcess.WaitForExitAsync();
+            }
+            catch (System.ComponentModel.Win32Exception ex)
+            {
+                Console.WriteLine($"Error al publicar el paquete npm: {ex.Message}");
+                return;
+            }
 
             if (npmPublishProcess.ExitCode != 0)
             {
@@ -151,11 +240,76 @@ public static class NpmPublisher
             }
 
             var output = await npmPublishProcess.StandardOutput.ReadToEndAsync();
-            Console.WriteLine($"Paquete npm publicado con éxito: {output}");
+            Console.WriteLine("Paquete npm publicado correctamente:");
+            Console.WriteLine(output);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al publicar el paquete npm: {ex.Message}");
+            Console.WriteLine(ex.StackTrace);
         }
+    }
+
+    private static string FindNpmExecutable()
+    {
+        // Intentar encontrar npm en el PATH
+        var npmPath = "npm";
+        
+        // En Windows, también buscar en ubicaciones comunes
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT) return npmPath;
+        // Comprobar si npm está en el PATH
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "where",
+                    Arguments = "npm",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+                
+            process.Start();
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+                
+            if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+            {
+                // Tomar la primera línea del resultado (primera ubicación encontrada)
+                var paths = output.Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
+                if (paths.Length > 0)
+                {
+                    return paths[0].Trim();
+                }
+            }
+        }
+        catch
+        {
+            // Ignorar errores y continuar con otras ubicaciones
+        }
+            
+        // Buscar en ubicaciones comunes de instalación de Node.js
+        string[] commonPaths =
+        [
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs", "npm.cmd"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "nodejs", "npm.cmd"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Roaming", "npm", "npm.cmd")
+        ];
+            
+        foreach (var path in commonPaths)
+        {
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+            
+        // En Windows, usar npm.cmd en lugar de npm
+        npmPath = "npm.cmd";
+
+        return npmPath;
     }
 }
